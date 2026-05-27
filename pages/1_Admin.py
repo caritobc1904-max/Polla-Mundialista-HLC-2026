@@ -2,7 +2,10 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
+# ==================================
 # CONEXION
+# ==================================
+
 conn = sqlite3.connect(
     'mundial.db',
     check_same_thread=False
@@ -10,10 +13,16 @@ conn = sqlite3.connect(
 
 cursor = conn.cursor()
 
+# ==================================
 # PASSWORD ADMIN
+# ==================================
+
 PASSWORD = "lacabana2026"
 
+# ==================================
 # LOGIN ADMIN
+# ==================================
+
 st.title('⚙️ Panel Administrador')
 
 password = st.text_input(
@@ -24,16 +33,50 @@ password = st.text_input(
 if password != PASSWORD:
 
     st.warning('Contraseña incorrecta')
-
     st.stop()
 
 st.success('Acceso autorizado')
 
+# ==================================
+# LIMPIAR IDS CORRUPTOS
+# ==================================
+
+try:
+
+    resultados_fix = pd.read_sql(
+        '''
+        SELECT *
+        FROM resultados
+        ''',
+        conn
+    )
+
+    for _, row in resultados_fix.iterrows():
+
+        try:
+
+            int(row["partido_id"])
+
+        except:
+
+            cursor.execute(
+                '''
+                DELETE FROM resultados
+                WHERE id = ?
+                ''',
+                (row["id"],)
+            )
+
+    conn.commit()
+
+except:
+    pass
+
 st.markdown('---')
 
-# =========================
+# ==================================
 # CREAR USUARIOS
-# =========================
+# ==================================
 
 st.subheader('👥 Crear usuarios')
 
@@ -78,14 +121,17 @@ if st.button('Crear usuario'):
 
 st.markdown('---')
 
-# =========================
+# ==================================
 # VER USUARIOS
-# =========================
+# ==================================
 
 st.subheader('📋 Usuarios registrados')
 
 usuarios = pd.read_sql(
-    'SELECT nombre FROM usuarios',
+    '''
+    SELECT nombre
+    FROM usuarios
+    ''',
     conn
 )
 
@@ -96,9 +142,9 @@ st.dataframe(
 
 st.markdown('---')
 
-# =========================
+# ==================================
 # CREAR PARTIDOS
-# =========================
+# ==================================
 
 st.subheader('⚽ Crear partidos')
 
@@ -164,14 +210,17 @@ if st.button('Guardar partido'):
 
 st.markdown('---')
 
-# =========================
+# ==================================
 # VER PARTIDOS
-# =========================
+# ==================================
 
 st.subheader('📅 Partidos registrados')
 
 partidos = pd.read_sql(
-    'SELECT * FROM partidos',
+    '''
+    SELECT *
+    FROM partidos
+    ''',
     conn
 )
 
@@ -182,70 +231,129 @@ st.dataframe(
 
 st.markdown('---')
 
-# =========================
+# ==================================
 # ACTUALIZAR RESULTADOS
-# =========================
+# ==================================
 
-st.subheader('🏆 Actualizar resultados')
+st.subheader('⚽ Actualizar resultado oficial')
 
-for _, partido in partidos.iterrows():
+partidos = pd.read_sql(
+    '''
+    SELECT id, equipo_a, equipo_b
+    FROM partidos
+    ''',
+    conn
+)
 
-    st.markdown('---')
+if not partidos.empty:
 
-    st.subheader(
-        f"{partido['bandera_a']} "
-        f"{partido['equipo_a']} vs "
-        f"{partido['bandera_b']} "
-        f"{partido['equipo_b']}"
+    partidos["label"] = (
+        partidos["equipo_a"]
+        + " vs "
+        + partidos["equipo_b"]
     )
 
-    col1, col2 = st.columns(2)
+    partido_sel = st.selectbox(
+        "Selecciona partido",
+        partidos["label"]
+    )
 
-    with col1:
+    partido_id = partidos.loc[
+        partidos["label"] == partido_sel,
+        "id"
+    ].values[0]
 
-        gol_a = st.number_input(
-            f"Goles {partido['equipo_a']}",
-            min_value=0,
-            key=f"a{partido['id']}"
-        )
+    goles_a = st.number_input(
+        "Goles equipo A",
+        min_value=0,
+        step=1
+    )
 
-    with col2:
+    goles_b = st.number_input(
+        "Goles equipo B",
+        min_value=0,
+        step=1
+    )
 
-        gol_b = st.number_input(
-            f"Goles {partido['equipo_b']}",
-            min_value=0,
-            key=f"b{partido['id']}"
-        )
+    if st.button("💾 Guardar resultado oficial"):
 
-    if st.button(
-        f"Actualizar resultado {partido['id']}"
-    ):
+        fila = partidos[
+            partidos["id"] == partido_id
+        ].iloc[0]
 
+        equipo_a = fila["equipo_a"]
+        equipo_b = fila["equipo_b"]
+
+        # ELIMINAR RESULTADO ANTERIOR
         cursor.execute(
             '''
-            UPDATE partidos
-            SET gol_a=?,
-                gol_b=?
-            WHERE id=?
+            DELETE FROM resultados
+            WHERE partido_id = ?
+            ''',
+            (int(partido_id),)
+        )
+
+        # INSERTAR RESULTADO NUEVO
+        cursor.execute(
+            '''
+            INSERT INTO resultados (
+                partido_id,
+                equipo_a,
+                equipo_b,
+                goles_a,
+                goles_b
+            )
+            VALUES (?, ?, ?, ?, ?)
             ''',
             (
-                gol_a,
-                gol_b,
-                partido['id']
+                int(partido_id),
+                equipo_a,
+                equipo_b,
+                int(goles_a),
+                int(goles_b)
             )
         )
 
         conn.commit()
 
+        # RECALCULAR PUNTOS
+        from logic import calcular_puntos
+
+        calcular_puntos()
+
         st.success(
-            'Resultado actualizado'
+            "Resultado guardado correctamente ⚽"
         )
+
+        st.rerun()
 
 st.markdown('---')
 
-# =========================
+# ==================================
+# HISTORIAL RESULTADOS
+# ==================================
+
+st.subheader('📊 Historial de resultados')
+
+historial = pd.read_sql(
+    '''
+    SELECT *
+    FROM resultados
+    ORDER BY id DESC
+    ''',
+    conn
+)
+
+st.dataframe(
+    historial,
+    use_container_width=True
+)
+
+st.markdown('---')
+
+# ==================================
 # VER PREDICCIONES
-# =========================
+# ==================================
 
 st.subheader('📝 Predicciones registradas')
 
@@ -255,7 +363,8 @@ predicciones = pd.read_sql(
         usuario,
         partido_id,
         pred_a,
-        pred_b
+        pred_b,
+        puntos
     FROM predicciones
     ''',
     conn
@@ -267,7 +376,6 @@ st.dataframe(
 )
 
 st.markdown('---')
-
 
 # ==================================
 # GOLEADORES REALES
@@ -372,3 +480,275 @@ st.dataframe(
     tabla_goleadores,
     use_container_width=True
 )
+
+st.markdown('---')
+
+# ==================================
+# ELIMINAR USUARIOS
+# ==================================
+
+st.subheader('🗑️ Eliminar usuarios')
+
+usuarios_lista = pd.read_sql(
+    '''
+    SELECT nombre
+    FROM usuarios
+    ''',
+    conn
+)
+
+if not usuarios_lista.empty:
+
+    usuario_eliminar = st.selectbox(
+        'Selecciona usuario',
+        usuarios_lista['nombre']
+    )
+
+    if st.button('Eliminar usuario'):
+
+        cursor.execute(
+            '''
+            DELETE FROM usuarios
+            WHERE nombre=?
+            ''',
+            (usuario_eliminar,)
+        )
+
+        cursor.execute(
+            '''
+            DELETE FROM predicciones
+            WHERE usuario=?
+            ''',
+            (usuario_eliminar,)
+        )
+
+        cursor.execute(
+            '''
+            DELETE FROM goleador_mundial
+            WHERE usuario=?
+            ''',
+            (usuario_eliminar,)
+        )
+
+        conn.commit()
+
+        st.success(
+            'Usuario eliminado correctamente'
+        )
+
+        st.rerun()
+
+st.markdown('---')
+
+# ==================================
+# ELIMINAR PARTIDOS
+# ==================================
+
+st.subheader('⚽ Eliminar partidos')
+
+partidos = pd.read_sql(
+    '''
+    SELECT id, equipo_a, equipo_b
+    FROM partidos
+    ''',
+    conn
+)
+
+if not partidos.empty:
+
+    partidos['label'] = (
+        partidos['id'].astype(str)
+        + " - "
+        + partidos['equipo_a']
+        + " vs "
+        + partidos['equipo_b']
+    )
+
+    partido_seleccionado = st.selectbox(
+        'Selecciona el partido',
+        partidos['label']
+    )
+
+    partido_id = int(
+        partido_seleccionado.split(" - ")[0]
+    )
+
+    if st.button('🗑️ Eliminar partido'):
+
+        cursor.execute(
+            '''
+            DELETE FROM predicciones
+            WHERE partido_id=?
+            ''',
+            (partido_id,)
+        )
+
+        cursor.execute(
+            '''
+            DELETE FROM resultados
+            WHERE partido_id=?
+            ''',
+            (partido_id,)
+        )
+
+        cursor.execute(
+            '''
+            DELETE FROM partidos
+            WHERE id=?
+            ''',
+            (partido_id,)
+        )
+
+        conn.commit()
+
+        st.success(
+            'Partido eliminado correctamente ⚽'
+        )
+
+        st.rerun()
+
+else:
+
+    st.warning(
+        'No hay partidos registrados'
+    )
+
+st.markdown('---')
+
+# ==================================
+# LIMPIAR GOLEADORES
+# ==================================
+
+st.subheader('🥇 Eliminar goleadores')
+
+if st.button(
+    '🗑️ Borrar todos los goleadores'
+):
+
+    cursor.execute(
+        "DELETE FROM goleador_mundial"
+    )
+
+    cursor.execute(
+        "DELETE FROM goleadores_real"
+    )
+
+    conn.commit()
+
+    st.success(
+        'Goleadores eliminados correctamente'
+    )
+
+    st.rerun()
+
+st.markdown('---')
+
+# ==================================
+# REINICIAR SISTEMA
+# ==================================
+
+st.subheader('🚨 Reiniciar sistema')
+
+if st.button(
+    'Eliminar TODAS las predicciones'
+):
+
+    cursor.execute(
+        '''
+        DELETE FROM predicciones
+        '''
+    )
+
+    conn.commit()
+
+    st.success(
+        'Predicciones eliminadas'
+    )
+
+if st.button(
+    'Eliminar TODOS los goleadores'
+):
+
+    cursor.execute(
+        '''
+        DELETE FROM goleador_mundial
+        '''
+    )
+
+    conn.commit()
+
+    st.success(
+        'Goleadores eliminados'
+    )
+
+st.markdown('---')
+
+# ==================================
+# ELIMINAR HISTORIAL
+# ==================================
+
+st.subheader('🗑️ Eliminar historial de resultados')
+
+historial = pd.read_sql(
+    '''
+    SELECT
+        id,
+        equipo_a,
+        equipo_b,
+        goles_a,
+        goles_b
+    FROM resultados
+    ORDER BY id DESC
+    ''',
+    conn
+)
+
+if not historial.empty:
+
+    historial["label"] = (
+        historial["id"].astype(str)
+        + " - "
+        + historial["equipo_a"]
+        + " vs "
+        + historial["equipo_b"]
+        + " ("
+        + historial["goles_a"].astype(str)
+        + "-"
+        + historial["goles_b"].astype(str)
+        + ")"
+    )
+
+    registro_sel = st.selectbox(
+        "Selecciona resultado",
+        historial["label"]
+    )
+
+    registro_id = int(
+        registro_sel.split(" - ")[0]
+    )
+
+    if st.button(
+        "🗑️ Eliminar resultado"
+    ):
+
+        cursor.execute(
+            '''
+            DELETE FROM resultados
+            WHERE id=?
+            ''',
+            (registro_id,)
+        )
+
+        conn.commit()
+
+        st.success(
+            "Resultado eliminado correctamente ⚽"
+        )
+
+        st.rerun()
+
+else:
+
+    st.info(
+        "No hay historial de resultados"
+    )

@@ -59,3 +59,15 @@ CREATE TABLE IF NOT EXISTS goleadores_real (
 ''')
 
 conn.commit()
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS resultados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    partido_id INTEGER,
+    equipo_a TEXT,
+    equipo_b TEXT,
+    goles_a INTEGER,
+    goles_b INTEGER,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+''')

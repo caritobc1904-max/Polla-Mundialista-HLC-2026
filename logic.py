@@ -8,13 +8,16 @@ conn = sqlite3.connect(
 
 cursor = conn.cursor()
 
-# ==================================
+# =========================================
 # CALCULAR PUNTOS
-# ==================================
+# =========================================
 
 def calcular_puntos():
 
+    # =========================================
     # RESETEAR PUNTOS
+    # =========================================
+
     cursor.execute(
         '''
         UPDATE predicciones
@@ -24,65 +27,90 @@ def calcular_puntos():
 
     conn.commit()
 
-    # OBTENER PARTIDOS
-    partidos = pd.read_sql(
+    # =========================================
+    # TRAER RESULTADOS OFICIALES
+    # =========================================
+
+    resultados = pd.read_sql(
         '''
-        SELECT *
-        FROM partidos
-        WHERE gol_a IS NOT NULL
-        AND gol_b IS NOT NULL
+        SELECT
+            partido_id,
+            goles_a,
+            goles_b
+        FROM resultados
         ''',
         conn
     )
 
-    # RECORRER PARTIDOS
-    for _, partido in partidos.iterrows():
+    # =========================================
+    # RECORRER RESULTADOS
+    # =========================================
+
+    for _, resultado in resultados.iterrows():
+
+        # =========================================
+        # LIMPIAR IDS CORRUPTOS
+        # =========================================
+
+        partido_id = pd.to_numeric(
+            resultado["partido_id"],
+            errors="coerce"
+        )
+
+        # SI EL ID ESTA DAÑADO LO IGNORA
+        if pd.isna(partido_id):
+            continue
+
+        partido_id = int(partido_id)
+
+        gol_a = int(resultado["goles_a"])
+        gol_b = int(resultado["goles_b"])
+
+        # =========================================
+        # TRAER PREDICCIONES
+        # =========================================
 
         predicciones = pd.read_sql(
-            f'''
+            '''
             SELECT *
             FROM predicciones
-            WHERE partido_id = {partido["id"]}
+            WHERE partido_id = ?
             ''',
-            conn
+            conn,
+            params=(partido_id,)
         )
 
         exactos = []
 
-        # ==========================
+        # =========================================
         # VALIDAR PREDICCIONES
-        # ==========================
+        # =========================================
 
         for _, pred in predicciones.iterrows():
 
             puntos = 0
 
+            pred_a = int(pred["pred_a"])
+            pred_b = int(pred["pred_b"])
+
+            # =========================================
             # MARCADOR EXACTO
-            if (
-                pred['pred_a'] == partido['gol_a']
-                and
-                pred['pred_b'] == partido['gol_b']
-            ):
+            # =========================================
+
+            if pred_a == gol_a and pred_b == gol_b:
 
                 puntos = 3
 
-                exactos.append(pred['id'])
+                exactos.append(pred["id"])
 
             else:
 
+                # =========================================
                 # GANADOR CORRECTO
+                # =========================================
 
-                real = (
-                    partido['gol_a']
-                    -
-                    partido['gol_b']
-                )
-
-                prediccion = (
-                    pred['pred_a']
-                    -
-                    pred['pred_b']
-                )
+                real = gol_a - gol_b
+                prediccion = pred_a - pred_b
 
                 if (
                     (real > 0 and prediccion > 0)
@@ -94,43 +122,44 @@ def calcular_puntos():
 
                     puntos = 1
 
+            # =========================================
             # GUARDAR PUNTOS
+            # =========================================
+
             cursor.execute(
                 '''
                 UPDATE predicciones
-                SET puntos=?
-                WHERE id=?
+                SET puntos = ?
+                WHERE id = ?
                 ''',
                 (
                     puntos,
-                    pred['id']
+                    pred["id"]
                 )
             )
 
         conn.commit()
 
-        # ==========================
+        # =========================================
         # BONUS UNICO
-        # ==========================
+        # =========================================
 
         if len(exactos) == 1:
-
-            exacto_id = exactos[0]
 
             cursor.execute(
                 '''
                 UPDATE predicciones
                 SET puntos = puntos + 2
-                WHERE id=?
+                WHERE id = ?
                 ''',
-                (exacto_id,)
+                (exactos[0],)
             )
 
             conn.commit()
 
-# ==================================
+# =========================================
 # TABLA GENERAL
-# ==================================
+# =========================================
 
 def tabla_general():
 
