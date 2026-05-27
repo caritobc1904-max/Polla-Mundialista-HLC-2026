@@ -3,34 +3,58 @@ import sqlite3
 conn = sqlite3.connect('mundial.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Participantes
+# USUARIOS
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS participantes (
+CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT UNIQUE
+    nombre TEXT UNIQUE,
+    password TEXT
 )
 ''')
 
-# Partidos
+# PARTIDOS
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS partidos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    jornada TEXT,
     fecha TEXT,
+    hora TEXT,
     equipo_a TEXT,
     equipo_b TEXT,
+    bandera_a TEXT,
+    bandera_b TEXT,
     gol_a INTEGER,
     gol_b INTEGER
 )
 ''')
 
-# Predicciones
+# PREDICCIONES
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS predicciones (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    participante TEXT,
+    usuario TEXT,
     partido_id INTEGER,
     pred_a INTEGER,
-    pred_b INTEGER
+    pred_b INTEGER,
+    puntos INTEGER DEFAULT 0
+)
+''')
+
+# GOLEADOR
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS goleador_mundial (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario TEXT UNIQUE,
+    goleador TEXT
+)
+''')
+
+# GOLES JUGADORES
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS goleadores_real (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    jugador TEXT UNIQUE,
+    goles INTEGER DEFAULT 0
 )
 ''')
 

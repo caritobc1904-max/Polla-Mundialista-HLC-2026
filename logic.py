@@ -1,74 +1,149 @@
 import sqlite3
 import pandas as pd
 
-conn = sqlite3.connect('mundial.db', check_same_thread=False)
+conn = sqlite3.connect(
+    'mundial.db',
+    check_same_thread=False
+)
 
-def calcular_puntos(pred_a, pred_b, real_a, real_b, unicos):
+cursor = conn.cursor()
 
-    if pred_a == real_a and pred_b == real_b:
-        puntos = 3
+# ==================================
+# CALCULAR PUNTOS
+# ==================================
 
-        if unicos == 1:
-            puntos += 2
+def calcular_puntos():
 
-    elif (
-        (pred_a > pred_b and real_a > real_b) or
-        (pred_a < pred_b and real_a < real_b) or
-        (pred_a == pred_b and real_a == real_b)
-    ):
-        puntos = 1
+    # RESETEAR PUNTOS
+    cursor.execute(
+        '''
+        UPDATE predicciones
+        SET puntos = 0
+        '''
+    )
 
-    else:
-        puntos = 0
+    conn.commit()
 
-    return puntos
+    # OBTENER PARTIDOS
+    partidos = pd.read_sql(
+        '''
+        SELECT *
+        FROM partidos
+        WHERE gol_a IS NOT NULL
+        AND gol_b IS NOT NULL
+        ''',
+        conn
+    )
 
+    # RECORRER PARTIDOS
+    for _, partido in partidos.iterrows():
+
+        predicciones = pd.read_sql(
+            f'''
+            SELECT *
+            FROM predicciones
+            WHERE partido_id = {partido["id"]}
+            ''',
+            conn
+        )
+
+        exactos = []
+
+        # ==========================
+        # VALIDAR PREDICCIONES
+        # ==========================
+
+        for _, pred in predicciones.iterrows():
+
+            puntos = 0
+
+            # MARCADOR EXACTO
+            if (
+                pred['pred_a'] == partido['gol_a']
+                and
+                pred['pred_b'] == partido['gol_b']
+            ):
+
+                puntos = 3
+
+                exactos.append(pred['id'])
+
+            else:
+
+                # GANADOR CORRECTO
+
+                real = (
+                    partido['gol_a']
+                    -
+                    partido['gol_b']
+                )
+
+                prediccion = (
+                    pred['pred_a']
+                    -
+                    pred['pred_b']
+                )
+
+                if (
+                    (real > 0 and prediccion > 0)
+                    or
+                    (real < 0 and prediccion < 0)
+                    or
+                    (real == 0 and prediccion == 0)
+                ):
+
+                    puntos = 1
+
+            # GUARDAR PUNTOS
+            cursor.execute(
+                '''
+                UPDATE predicciones
+                SET puntos=?
+                WHERE id=?
+                ''',
+                (
+                    puntos,
+                    pred['id']
+                )
+            )
+
+        conn.commit()
+
+        # ==========================
+        # BONUS UNICO
+        # ==========================
+
+        if len(exactos) == 1:
+
+            exacto_id = exactos[0]
+
+            cursor.execute(
+                '''
+                UPDATE predicciones
+                SET puntos = puntos + 2
+                WHERE id=?
+                ''',
+                (exacto_id,)
+            )
+
+            conn.commit()
+
+# ==================================
+# TABLA GENERAL
+# ==================================
 
 def tabla_general():
 
-    partidos = pd.read_sql('SELECT * FROM partidos', conn)
-    predicciones = pd.read_sql('SELECT * FROM predicciones', conn)
-
-    resultados = []
-
-    for _, pred in predicciones.iterrows():
-
-        partido = partidos[partidos['id'] == pred['partido_id']]
-
-        if partido.empty:
-            continue
-
-        partido = partido.iloc[0]
-
-        if pd.isna(partido['gol_a']) or pd.isna(partido['gol_b']):
-            continue
-
-        unicos = len(predicciones[
-            (predicciones['partido_id'] == pred['partido_id']) &
-            (predicciones['pred_a'] == partido['gol_a']) &
-            (predicciones['pred_b'] == partido['gol_b'])
-        ])
-
-        puntos = calcular_puntos(
-            pred['pred_a'],
-            pred['pred_b'],
-            partido['gol_a'],
-            partido['gol_b'],
-            unicos
-        )
-
-        resultados.append({
-            'participante': pred['participante'],
-            'puntos': puntos
-        })
-
-    df = pd.DataFrame(resultados)
-
-    if df.empty:
-        return pd.DataFrame(columns=['participante', 'puntos'])
-
-    tabla = df.groupby('participante')['puntos'].sum().reset_index()
-
-    tabla = tabla.sort_values(by='puntos', ascending=False)
+    tabla = pd.read_sql(
+        '''
+        SELECT
+            usuario,
+            SUM(puntos) as puntos
+        FROM predicciones
+        GROUP BY usuario
+        ORDER BY puntos DESC
+        ''',
+        conn
+    )
 
     return tabla
