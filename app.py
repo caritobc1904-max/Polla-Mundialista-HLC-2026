@@ -26,4 +26,3 @@ st.markdown('## Bienvenidos')
 
 st.write('Selecciona una opción en el menú lateral.')
 
-st.image('assets/C:\\Users\\HP\\Documents\\Documentos\\LA CABAÑA\\COPASST\\LOGOS E IMAGENS\\WhatsApp Image 2024-12-10 at 7.50.54 AM.jpeg', width=250)
