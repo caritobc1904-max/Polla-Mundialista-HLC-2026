@@ -2,6 +2,25 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import os
+
+# ==================================
+# CSS
+# ==================================
+
+css_path = os.path.join(
+    os.path.dirname(__file__),
+    '..',
+    'assets',
+    'style.css'
+)
+
+with open(css_path) as f:
+
+    st.markdown(
+        f'<style>{f.read()}</style>',
+        unsafe_allow_html=True
+    )
 
 # ==================================
 # CONEXION BASE DE DATOS
@@ -61,6 +80,52 @@ if usuario and password:
 
     st.success(f'Bienvenido {usuario}')
 
+    # ==================================
+    # VALIDAR PAGO
+    # ==================================
+
+    estado_pago = cursor.execute(
+        '''
+        SELECT pago
+        FROM usuarios
+        WHERE nombre=?
+        ''',
+        (usuario,)
+    ).fetchone()
+
+    # SI NO EXISTE
+    if estado_pago is None:
+
+        pago = 0
+
+    else:
+
+        pago = estado_pago[0]
+
+    # ==================================
+    # BLOQUEAR SI NO HA PAGADO
+    # ==================================
+
+    if pago == 0:
+
+        st.error(
+            '❌ Aún no has realizado el pago.'
+        )
+
+        st.warning(
+            'Debes pagar para habilitar las predicciones.'
+        )
+
+        st.stop()
+
+    # ==================================
+    # SI YA PAGÓ
+    # ==================================
+
+    st.success(
+        '✅ Pago verificado correctamente'
+    )
+
     st.markdown('---')
 
     # ==============================
@@ -116,29 +181,63 @@ if usuario and password:
             f"{partido['hora']}"
         )
 
-        # ==========================
-        # CERRAR PREDICCIONES
-        # ==========================
+        # ==================================
+        # BLOQUEOS POR FASE
+        # ==================================
 
-        try:
+        ahora = datetime.now()
 
-            fecha_hora = (
-                f"{partido['fecha']} "
-                f"{partido['hora']}"
-            )
+        jornada = partido["jornada"]
 
-            hora_partido = datetime.strptime(
-                fecha_hora,
+        # FASE DE GRUPOS
+        if jornada == "Grupos":
+
+            fecha_cierre = datetime.strptime(
+                "2026-06-11 00:00",
                 "%Y-%m-%d %H:%M"
             )
 
-            predicciones_cerradas = (
-                datetime.now() >= hora_partido
+        # OCTAVOS
+        elif jornada == "Octavos":
+
+            fecha_cierre = datetime.strptime(
+                "2026-06-28 00:00",
+                "%Y-%m-%d %H:%M"
             )
 
-        except:
+        # CUARTOS
+        elif jornada == "Cuartos":
 
-            predicciones_cerradas = False
+            fecha_cierre = datetime.strptime(
+                "2026-07-04 00:00",
+                "%Y-%m-%d %H:%M"
+            )
+
+        # SEMIFINAL
+        elif jornada == "Semifinal":
+
+            fecha_cierre = datetime.strptime(
+                "2026-07-09 00:00",
+                "%Y-%m-%d %H:%M"
+            )
+
+        # FINAL
+        elif jornada == "Final":
+
+            fecha_cierre = datetime.strptime(
+                "2026-07-18 00:00",
+                "%Y-%m-%d %H:%M"
+            )
+
+        else:
+
+            fecha_cierre = datetime.now()
+
+        # ==================================
+        # BLOQUEADO
+        # ==================================
+
+        bloqueado = ahora >= fecha_cierre
 
         # ==========================
         # VALIDAR SI YA PREDIJO
@@ -179,11 +278,11 @@ if usuario and password:
         # SI PREDICCIONES CERRADAS
         # ==========================
 
-        if predicciones_cerradas:
+        if bloqueado:
 
             st.error(
-                'Predicciones cerradas '
-                'para este partido'
+                '⛔ Predicciones cerradas '
+                'para esta fase'
             )
 
             continue

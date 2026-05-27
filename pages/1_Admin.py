@@ -1,6 +1,25 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import os
+
+# ==================================
+# CSS
+# ==================================
+
+css_path = os.path.join(
+    os.path.dirname(__file__),
+    '..',
+    'assets',
+    'style.css'
+)
+
+with open(css_path) as f:
+
+    st.markdown(
+        f'<style>{f.read()}</style>',
+        unsafe_allow_html=True
+    )
 
 # ==================================
 # CONEXION
@@ -12,6 +31,24 @@ conn = sqlite3.connect(
 )
 
 cursor = conn.cursor()
+
+# ==================================
+# CREAR COLUMNA PAGO SI NO EXISTE
+# ==================================
+
+try:
+
+    cursor.execute(
+        '''
+        ALTER TABLE usuarios
+        ADD COLUMN pago INTEGER DEFAULT 0
+        '''
+    )
+
+    conn.commit()
+
+except:
+    pass
 
 # ==================================
 # PASSWORD ADMIN
@@ -140,8 +177,162 @@ st.dataframe(
     use_container_width=True
 )
 
+# ==================================
+# CONTROL PAGOS
+# ==================================
+
 st.markdown('---')
 
+st.subheader('💰 Control de pagos')
+
+usuarios_pago = pd.read_sql(
+    '''
+    SELECT nombre, pago
+    FROM usuarios
+    ''',
+    conn
+)
+
+if not usuarios_pago.empty:
+
+    usuario_pago = st.selectbox(
+        'Selecciona usuario',
+        usuarios_pago['nombre']
+    )
+
+    estado_actual = usuarios_pago[
+        usuarios_pago['nombre'] == usuario_pago
+    ]['pago'].values[0]
+
+    texto_estado = (
+        '✅ PAGADO'
+        if estado_actual == 1
+        else '❌ PENDIENTE'
+    )
+
+    st.info(
+        f'Estado actual: {texto_estado}'
+    )
+
+    if st.button('Cambiar estado pago'):
+
+        nuevo_estado = (
+            0 if estado_actual == 1 else 1
+        )
+
+        cursor.execute(
+            '''
+            UPDATE usuarios
+            SET pago=?
+            WHERE nombre=?
+            ''',
+            (
+                nuevo_estado,
+                usuario_pago
+            )
+        )
+
+        conn.commit()
+
+        st.success(
+            'Estado actualizado correctamente'
+        )
+
+        st.rerun()
+
+# ==================================
+# TABLA PAGOS
+# ==================================
+
+tabla_pagos = pd.read_sql(
+    '''
+    SELECT
+        nombre,
+        CASE
+            WHEN pago = 1
+            THEN '✅ PAGADO'
+            ELSE '❌ PENDIENTE'
+        END as estado
+    FROM usuarios
+    ''',
+    conn
+)
+
+st.dataframe(
+    tabla_pagos,
+    use_container_width=True
+)
+
+# ==================================
+# RESUMEN DINERO
+# ==================================
+
+st.markdown('---')
+
+st.subheader('💵 Resumen financiero')
+
+total_usuarios = pd.read_sql(
+    '''
+    SELECT COUNT(*) as total
+    FROM usuarios
+    ''',
+    conn
+).iloc[0]["total"]
+
+usuarios_pagados = pd.read_sql(
+    '''
+    SELECT COUNT(*) as total
+    FROM usuarios
+    WHERE pago = 1
+    ''',
+    conn
+).iloc[0]["total"]
+
+usuarios_pendientes = (
+    total_usuarios - usuarios_pagados
+)
+
+valor_inscripcion = 50000
+
+recaudado = (
+    usuarios_pagados * valor_inscripcion
+)
+
+faltante = (
+    usuarios_pendientes * valor_inscripcion
+)
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+
+    st.metric(
+        '👥 Usuarios',
+        total_usuarios
+    )
+
+with col2:
+
+    st.metric(
+        '✅ Pagados',
+        usuarios_pagados
+    )
+
+with col3:
+
+    st.metric(
+        '💰 Recaudado',
+        f'${recaudado:,.0f}'
+    )
+
+with col4:
+
+    st.metric(
+        '❌ Pendiente',
+        f'${faltante:,.0f}'
+    )
+
+st.markdown('---')
 # ==================================
 # CREAR PARTIDOS
 # ==================================
@@ -501,10 +692,14 @@ if not usuarios_lista.empty:
 
     usuario_eliminar = st.selectbox(
         'Selecciona usuario',
-        usuarios_lista['nombre']
+        usuarios_lista['nombre'],
+        key='select_eliminar_usuario'
     )
 
-    if st.button('Eliminar usuario'):
+    if st.button(
+        'Eliminar usuario',
+        key='btn_eliminar_usuario'
+    ):
 
         cursor.execute(
             '''
@@ -566,14 +761,18 @@ if not partidos.empty:
 
     partido_seleccionado = st.selectbox(
         'Selecciona el partido',
-        partidos['label']
+        partidos['label'],
+        key='select_eliminar_partido'
     )
 
     partido_id = int(
         partido_seleccionado.split(" - ")[0]
     )
 
-    if st.button('🗑️ Eliminar partido'):
+    if st.button(
+        '🗑️ Eliminar partido',
+        key='btn_eliminar_partido'
+    ):
 
         cursor.execute(
             '''
@@ -622,7 +821,8 @@ st.markdown('---')
 st.subheader('🥇 Eliminar goleadores')
 
 if st.button(
-    '🗑️ Borrar todos los goleadores'
+    '🗑️ Borrar todos los goleadores',
+    key='btn_borrar_goleadores'
 ):
 
     cursor.execute(
@@ -650,7 +850,8 @@ st.markdown('---')
 st.subheader('🚨 Reiniciar sistema')
 
 if st.button(
-    'Eliminar TODAS las predicciones'
+    'Eliminar TODAS las predicciones',
+    key='btn_eliminar_predicciones'
 ):
 
     cursor.execute(
@@ -666,7 +867,8 @@ if st.button(
     )
 
 if st.button(
-    'Eliminar TODOS los goleadores'
+    'Eliminar TODOS los goleadores',
+    key='btn_eliminar_todos_goleadores'
 ):
 
     cursor.execute(
@@ -720,7 +922,8 @@ if not historial.empty:
 
     registro_sel = st.selectbox(
         "Selecciona resultado",
-        historial["label"]
+        historial["label"],
+        key='select_eliminar_resultado'
     )
 
     registro_id = int(
@@ -728,7 +931,8 @@ if not historial.empty:
     )
 
     if st.button(
-        "🗑️ Eliminar resultado"
+        "🗑️ Eliminar resultado",
+        key='btn_eliminar_resultado'
     ):
 
         cursor.execute(

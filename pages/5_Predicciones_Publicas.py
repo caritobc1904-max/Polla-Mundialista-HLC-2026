@@ -1,7 +1,22 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import os
 
+css_path = os.path.join(
+    os.path.dirname(__file__),
+    '..',
+    'assets',
+    'style.css'
+)
+
+with open(css_path) as f:
+
+    st.markdown(
+        f'<style>{f.read()}</style>',
+        unsafe_allow_html=True
+    )
+    
 conn = sqlite3.connect('mundial.db', check_same_thread=False)
 
 st.title("📊 Predicciones Públicas")
@@ -66,4 +81,3 @@ for partido_id, grupo in data.groupby("id"):
     tabla.columns = ["Usuario", "Predicción"]
 
     st.dataframe(tabla, use_container_width=True)
-    

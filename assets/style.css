@@ -1,0 +1,92 @@
+.stApp {
+    background: linear-gradient(
+        180deg,
+        #06121f,
+        #0d1f33
+    );
+    color: white;
+}
+
+/* TITULOS */
+
+h1, h2, h3 {
+    color: gold !important;
+    font-weight: bold;
+}
+
+/* TARJETAS */
+
+[data-testid="stVerticalBlock"] {
+    border-radius: 15px;
+}
+
+/* BOTONES */
+
+.stButton button {
+    background-color: gold;
+    color: black;
+    border-radius: 12px;
+    border: none;
+    font-weight: bold;
+    height: 45px;
+    width: 100%;
+}
+
+.stButton button:hover {
+    background-color: #ffd700;
+    color: black;
+}
+
+/* INPUTS */
+
+.stTextInput input,
+.stNumberInput input {
+    border-radius: 10px;
+    border: 2px solid gold;
+}
+
+/* TABLAS */
+
+[data-testid="stDataFrame"] {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+/* SIDEBAR */
+
+section[data-testid="stSidebar"] {
+    background-color: #04101c;
+}
+
+/* ALERTAS */
+
+.stSuccess {
+    border-radius: 10px;
+}
+
+.stError {
+    border-radius: 10px;
+}
+/* TEXTO SIDEBAR */
+
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* RADIO BUTTONS */
+
+.stRadio label {
+    color: white !important;
+}
+
+/* SELECTBOX */
+
+.stSelectbox label {
+    color: white !important;
+}
+
+/* INPUT LABELS */
+
+label {
+    color: white !important;
+}
