@@ -18,11 +18,25 @@ def calcular_puntos():
     # RESETEAR PUNTOS
     # =========================================
 
+    try:
+
+      cursor.execute(
+        '''
+        ALTER TABLE predicciones
+        ADD COLUMN puntos INTEGER DEFAULT 0
+        '''
+      )
+
+      conn.commit()
+
+    except:
+      pass
+
     cursor.execute(
-        '''
-        UPDATE predicciones
-        SET puntos = 0
-        '''
+    '''
+    UPDATE predicciones
+    SET puntos = 0
+    '''
     )
 
     conn.commit()
