@@ -103,9 +103,12 @@ for _, row in predicciones.iterrows():
     puntos = row["puntos"]
 
     # ESTADO
-    if puntos >= 3:
-        estado = "🔥 MARCADOR EXACTO"
-        color = "#facc15"
+    if puntos >= 5:
+        estado = "🔥 MARCADOR ÚNICO"
+        color = "#fab115"
+    elif puntos == 3: 
+        estado = "🎯 MARCADOR EXACTO"
+        color = "#f5f10b"
     elif puntos == 1:
         estado = "✅ ACIERTO"
         color = "#22c55e"
