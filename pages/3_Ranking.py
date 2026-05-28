@@ -25,7 +25,9 @@ with open(css_path) as f:
 # EJECUCIÓN AUTOMÁTICA
 # ==================================
 
-calcular_puntos()
+if "init" not in st.session_state:
+    calcular_puntos()
+    st.session_state["init"] = True
 
 # ==================================
 # TITULO
