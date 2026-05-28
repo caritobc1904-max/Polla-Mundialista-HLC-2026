@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 import os
 
 from logic import calcular_puntos, tabla_general
@@ -30,7 +29,7 @@ st.title('🏆 Ranking Mundialista')
 st.markdown('---')
 
 # ==================================
-# BOTÓN SEGURO PARA CALCULAR
+# BOTÓN SEGURO (IMPORTANTE)
 # ==================================
 
 if st.button("🔄 Actualizar ranking"):

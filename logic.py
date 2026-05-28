@@ -2,20 +2,12 @@ import sqlite3
 import pandas as pd
 import os
 
-# =========================================
-# CONEXIÓN SEGURA
-# =========================================
-
 DB_PATH = os.path.join(os.path.dirname(__file__), "mundial.db")
 
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-cursor = conn.cursor()
-
-# =========================================
-# CALCULAR PUNTOS (VERSIÓN SEGURA)
-# =========================================
-
 def calcular_puntos():
+
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
 
     resultados = pd.read_sql(
         '''
@@ -48,12 +40,8 @@ def calcular_puntos():
             pred_a = int(pred["pred_a"])
             pred_b = int(pred["pred_b"])
 
-            # =========================
-            # MARCADOR EXACTO
-            # =========================
             if pred_a == gol_a and pred_b == gol_b:
                 puntos = 3
-
             else:
                 real = gol_a - gol_b
                 prediccion = pred_a - pred_b
@@ -75,12 +63,12 @@ def calcular_puntos():
             )
 
     conn.commit()
+    conn.close()
 
-# =========================================
-# TABLA GENERAL
-# =========================================
 
 def tabla_general():
+
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 
     tabla = pd.read_sql(
         '''
@@ -93,5 +81,7 @@ def tabla_general():
         ''',
         conn
     )
+
+    conn.close()
 
     return tabla
