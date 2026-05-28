@@ -161,14 +161,7 @@ st.markdown(
 
 # TOTAL PARTIDOS
 
-total_partidos = pd.read_sql(
-    '''
-    SELECT COUNT(*) as total
-    FROM partidos
-    ''',
-    conn
-).iloc[0]['total']
-
+total_partidos = 104
 # PARTIDOS JUGADOS
 
 jugados = pd.read_sql(

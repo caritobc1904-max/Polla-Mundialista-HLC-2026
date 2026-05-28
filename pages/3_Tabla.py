@@ -21,4 +21,26 @@ st.title('🏆 Tabla General')
 
 ranking = tabla_general()
 
+if ranking.empty:
+    st.info("No hay datos aún")
+    st.stop()
+
+ranking.index = ranking.index + 1
+ranking.index.name = "Posición"
+
+ranking.columns = ["Usuario", "Puntos"]
+
 st.dataframe(ranking, use_container_width=True)
+
+st.markdown('---')
+
+# ==================================
+# TOP 3
+# ==================================
+
+st.subheader('🥇 Top 3')
+
+top3 = ranking.head(3)
+
+for i, row in top3.iterrows():
+    st.write(f"{i}. {row['Usuario']} - {row['Puntos']} pts")
