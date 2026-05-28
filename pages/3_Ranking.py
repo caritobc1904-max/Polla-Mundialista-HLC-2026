@@ -22,6 +22,12 @@ with open(css_path) as f:
     )
 
 # ==================================
+# EJECUCIÓN AUTOMÁTICA
+# ==================================
+
+calcular_puntos()
+
+# ==================================
 # TITULO
 # ==================================
 
@@ -29,15 +35,7 @@ st.title('🏆 Ranking Mundialista')
 st.markdown('---')
 
 # ==================================
-# BOTÓN SEGURO (IMPORTANTE)
-# ==================================
-
-if st.button("🔄 Actualizar ranking"):
-    calcular_puntos()
-    st.success("Ranking actualizado")
-
-# ==================================
-# TABLA GENERAL
+# TABLA
 # ==================================
 
 tabla = tabla_general()
@@ -46,15 +44,10 @@ if tabla.empty:
     st.info("No hay datos aún")
     st.stop()
 
-# POSICIONES
 tabla.index = tabla.index + 1
 tabla.index.name = "Posición"
 
 tabla.columns = ["Usuario", "Puntos"]
-
-# ==================================
-# MOSTRAR TABLA
-# ==================================
 
 st.dataframe(tabla, use_container_width=True)
 
