@@ -240,6 +240,7 @@ if not usuarios_pago.empty:
 
         st.rerun()
 
+
 # ==================================
 # TABLA PAGOS
 # ==================================
@@ -333,6 +334,97 @@ with col4:
     )
 
 st.markdown('---')
+
+# ==================================
+# MOSTRAR PREDICCIONES PUBLICAS
+# ==================================
+
+st.markdown('---')
+
+st.subheader('🌍 Predicciones públicas')
+
+# CREAR TABLA CONFIG SI NO EXISTE
+cursor.execute(
+    '''
+    CREATE TABLE IF NOT EXISTS configuracion (
+        clave TEXT PRIMARY KEY,
+        valor TEXT
+    )
+    '''
+)
+
+conn.commit()
+
+# BUSCAR CONFIG
+config = cursor.execute(
+    '''
+    SELECT valor
+    FROM configuracion
+    WHERE clave='mostrar_publicas'
+    '''
+).fetchone()
+
+# SI NO EXISTE
+if not config:
+
+    cursor.execute(
+        '''
+        INSERT INTO configuracion(
+            clave,
+            valor
+        )
+        VALUES (?, ?)
+        ''',
+        (
+            'mostrar_publicas',
+            '0'
+        )
+    )
+
+    conn.commit()
+
+    mostrar = '0'
+
+else:
+
+    mostrar = config[0]
+
+# ESTADO
+if mostrar == '1':
+
+    st.success(
+        '✅ Predicciones públicas ACTIVADAS'
+    )
+
+else:
+
+    st.error(
+        '❌ Predicciones públicas OCULTAS'
+    )
+
+# BOTON CAMBIAR
+if st.button('Cambiar estado predicciones públicas'):
+
+    nuevo = '0'
+
+    if mostrar == '0':
+
+        nuevo = '1'
+
+    cursor.execute(
+        '''
+        UPDATE configuracion
+        SET valor=?
+        WHERE clave='mostrar_publicas'
+        ''',
+        (nuevo,)
+    )
+
+    conn.commit()
+
+    st.rerun()
+
+
 # ==================================
 # CREAR PARTIDOS
 # ==================================

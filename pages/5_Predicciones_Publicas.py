@@ -16,10 +16,64 @@ with open(css_path) as f:
         f'<style>{f.read()}</style>',
         unsafe_allow_html=True
     )
-    
-conn = sqlite3.connect('mundial.db', check_same_thread=False)
+
+# ==================================
+# CONEXION
+# ==================================
+
+conn = sqlite3.connect(
+    'mundial.db',
+    check_same_thread=False
+)
+
+cursor = conn.cursor()
 
 st.title("📊 Predicciones Públicas")
+
+# ==================================
+# VALIDAR SI ESTA HABILITADO
+# ==================================
+
+cursor.execute(
+    '''
+    CREATE TABLE IF NOT EXISTS configuracion (
+        clave TEXT PRIMARY KEY,
+        valor TEXT
+    )
+    '''
+)
+
+conn.commit()
+
+config = cursor.execute(
+    '''
+    SELECT valor
+    FROM configuracion
+    WHERE clave='mostrar_publicas'
+    '''
+).fetchone()
+
+mostrar = '0'
+
+if config:
+
+    mostrar = config[0]
+
+# ==================================
+# SI ESTA OCULTO
+# ==================================
+
+if mostrar == '0':
+
+    st.warning(
+        '🔒 Las predicciones públicas aún no están disponibles'
+    )
+
+    st.info(
+        'Serán habilitadas cuando finalice la etapa de predicciones.'
+    )
+
+    st.stop()
 
 # ==================================
 # CONSULTA SEGURA
@@ -42,6 +96,7 @@ ORDER BY p.id ASC, pr.usuario ASC
 data = pd.read_sql(query, conn)
 
 if data.empty:
+
     st.warning("No hay predicciones aún")
     st.stop()
 
@@ -50,7 +105,9 @@ if data.empty:
 # ==================================
 
 data["Partido"] = (
-    data["equipo_a"] + " vs " + data["equipo_b"]
+    data["equipo_a"]
+    + " vs "
+    + data["equipo_b"]
 )
 
 data["Predicción"] = (
@@ -60,10 +117,12 @@ data["Predicción"] = (
 )
 
 # ==================================
-# ORDEN SEGURO (SIN KEY ERROR)
+# ORDEN SEGURO
 # ==================================
 
-data = data.sort_values(["id", "usuario"])
+data = data.sort_values(
+    ["id", "usuario"]
+)
 
 # ==================================
 # MOSTRAR AGRUPADO
@@ -77,7 +136,16 @@ for partido_id, grupo in data.groupby("id"):
         f"⚽ {grupo.iloc[0]['Partido']}"
     )
 
-    tabla = grupo[["usuario", "Predicción"]]
-    tabla.columns = ["Usuario", "Predicción"]
+    tabla = grupo[
+        ["usuario", "Predicción"]
+    ]
 
-    st.dataframe(tabla, use_container_width=True)
+    tabla.columns = [
+        "Usuario",
+        "Predicción"
+    ]
+
+    st.dataframe(
+        tabla,
+        use_container_width=True
+    )
