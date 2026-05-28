@@ -221,6 +221,7 @@ def calcular_puntos():
 # TABLA GENERAL
 # =========================================
 
+
 def tabla_general():
 
     conn = sqlite3.connect(
@@ -242,10 +243,7 @@ def tabla_general():
 
     conn.close()
 
-    # =========================================
     # SI NO HAY DATOS
-    # =========================================
-
     if tabla.empty:
 
         return pd.DataFrame(
