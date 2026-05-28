@@ -25,10 +25,15 @@ if ranking.empty:
     st.info("No hay datos aún")
     st.stop()
 
-ranking.index = ranking.index + 1
-ranking.index.name = "Posición"
+if not ranking.empty:
 
-ranking.columns = ["Usuario", "Puntos"]
+    ranking.index = ranking.index + 1
+    ranking.index.name = "Posición"
+
+    ranking.columns = [
+        "Usuario",
+        "Puntos"
+    ]
 
 st.dataframe(ranking, use_container_width=True)
 

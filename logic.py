@@ -232,7 +232,7 @@ def tabla_general():
         '''
         SELECT
             usuario,
-            SUM(puntos) AS puntos
+            COALESCE(SUM(puntos), 0) as puntos
         FROM predicciones
         GROUP BY usuario
         ORDER BY puntos DESC
@@ -241,5 +241,18 @@ def tabla_general():
     )
 
     conn.close()
+
+    # =========================================
+    # SI NO HAY DATOS
+    # =========================================
+
+    if tabla.empty:
+
+        return pd.DataFrame(
+            columns=[
+                'usuario',
+                'puntos'
+            ]
+        )
 
     return tabla
