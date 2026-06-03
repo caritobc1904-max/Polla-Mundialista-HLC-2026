@@ -42,7 +42,7 @@ conn = sqlite3.connect(
     'mundial.db',
     check_same_thread=False
 )
-
+cursor = conn.cursor()
 import os
 
 st.write("RUTA DB:")
