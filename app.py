@@ -43,6 +43,26 @@ conn = sqlite3.connect(
     check_same_thread=False
 )
 
+import os
+
+st.write("RUTA DB:")
+st.write(os.path.abspath("mundial.db"))
+
+usuarios = cursor.execute(
+    "SELECT COUNT(*) FROM usuarios"
+).fetchone()[0]
+
+partidos = cursor.execute(
+    "SELECT COUNT(*) FROM partidos"
+).fetchone()[0]
+
+predicciones = cursor.execute(
+    "SELECT COUNT(*) FROM predicciones"
+).fetchone()[0]
+
+st.write("Usuarios:", usuarios)
+st.write("Partidos:", partidos)
+st.write("Predicciones:", predicciones)
 # ==================================
 # HERO PRINCIPAL
 # ==================================
@@ -330,3 +350,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
