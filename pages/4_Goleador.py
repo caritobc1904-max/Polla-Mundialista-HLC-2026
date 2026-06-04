@@ -30,30 +30,15 @@ st.title('⚽ Goleador del Mundial')
 # LISTA JUGADORES
 # ==================================
 
-jugadores = [
+jugadores_db = cursor.execute(
+    """
+    SELECT jugador
+    FROM goleadores_real
+    ORDER BY jugador
+    """
+).fetchall()
 
-    'Kylian Mbappé',
-    'Vinicius Jr',
-    'Erling Haaland',
-    'Harry Kane',
-    'Julián Álvarez',
-    'Lautaro Martínez',
-    'Raphinha',
-    'Rodrygo',
-    'Luis Díaz',
-    'Cristiano Ronaldo',
-    'Lionel Messi',
-    'Lamine Yamal',
-    'Pedri',
-    'Bruno Fernandes',
-    'Darwin Núñez',
-    'Alexander Isak',
-    'Bukayo Saka',
-    'Jamal Musiala',
-    'Florian Wirtz',
-    'Otro'
-]
-
+jugadores = [j[0] for j in jugadores_db]
 # ==================================
 # LOGIN
 # ==================================

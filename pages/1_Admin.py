@@ -31,6 +31,26 @@ conn = sqlite3.connect(
 )
 
 cursor = conn.cursor()
+import os
+
+st.write("RUTA DB:")
+st.write(os.path.abspath("mundial.db"))
+
+usuarios = cursor.execute(
+    "SELECT COUNT(*) FROM usuarios"
+).fetchone()[0]
+
+partidos = cursor.execute(
+    "SELECT COUNT(*) FROM partidos"
+).fetchone()[0]
+
+predicciones = cursor.execute(
+    "SELECT COUNT(*) FROM predicciones"
+).fetchone()[0]
+
+st.write("Usuarios:", usuarios)
+st.write("Partidos:", partidos)
+st.write("Predicciones:", predicciones)
 
 # ==================================
 # CREAR COLUMNA PAGO SI NO EXISTE
@@ -660,35 +680,27 @@ st.dataframe(
 
 st.markdown('---')
 
+
+
 # ==================================
 # GOLEADORES REALES
 # ==================================
 
 st.subheader('⚽ Actualizar goleadores')
 
+lista_jugadores = cursor.execute(
+    '''
+    SELECT jugador
+    FROM goleadores_real
+    ORDER BY jugador
+    '''
+).fetchall()
+
+lista_jugadores = [j[0] for j in lista_jugadores]
+
 jugador = st.selectbox(
     'Jugador',
-    [
-        'Kylian Mbappé',
-        'Vinicius Jr',
-        'Erling Haaland',
-        'Harry Kane',
-        'Julián Álvarez',
-        'Lautaro Martínez',
-        'Raphinha',
-        'Rodrygo',
-        'Luis Díaz',
-        'Cristiano Ronaldo',
-        'Lionel Messi',
-        'Lamine Yamal',
-        'Pedri',
-        'Bruno Fernandes',
-        'Darwin Núñez',
-        'Alexander Isak',
-        'Bukayo Saka',
-        'Jamal Musiala',
-        'Florian Wirtz'
-    ]
+    lista_jugadores
 )
 
 goles = st.number_input(
@@ -701,55 +713,53 @@ if st.button(
     'Actualizar goleador'
 ):
 
-    existente = cursor.execute(
+    cursor.execute(
         '''
-        SELECT *
-        FROM goleadores_real
+        UPDATE goleadores_real
+        SET goles=?
         WHERE jugador=?
         ''',
-        (jugador,)
-    ).fetchone()
-
-    if existente:
-
-        cursor.execute(
-            '''
-            UPDATE goleadores_real
-            SET goles=?
-            WHERE jugador=?
-            ''',
-            (
-                goles,
-                jugador
-            )
+        (
+            goles,
+            jugador
         )
-
-    else:
-
-        cursor.execute(
-            '''
-            INSERT INTO goleadores_real(
-                jugador,
-                goles
-            )
-            VALUES (?, ?)
-            ''',
-            (
-                jugador,
-                goles
-            )
-        )
+    )
 
     conn.commit()
 
     st.success(
         'Goleador actualizado'
     )
-
 # ==================================
 # TABLA GOLEADORES
 # ==================================
+st.subheader("➕ Agregar nuevo jugador")
 
+nuevo_jugador = st.text_input(
+    "Nombre del jugador"
+)
+
+if st.button("Agregar jugador"):
+
+    if nuevo_jugador.strip():
+
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO goleadores_real
+            (jugador, goles)
+            VALUES (?, 0)
+            """,
+            (nuevo_jugador.strip(),)
+        )
+
+        conn.commit()
+
+        st.success(
+            f"{nuevo_jugador} agregado correctamente"
+        )
+
+        st.rerun()
+        
 tabla_goleadores = pd.read_sql(
     '''
     SELECT *
